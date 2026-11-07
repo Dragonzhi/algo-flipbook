@@ -1,0 +1,21 @@
+# ---- 系统 / 编辑器 ----
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+
+# ---- 验证脚本产物（node _tools/verify.cjs 生成，可随时重跑）----
+_tools/out/
+
+# ---- 本地工具与会话状态，不属于内容 ----
+.dsh-ops/
+.commandcode/
+
+# ---- Node（暂无构建链，防一手）----
+node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
