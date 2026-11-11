@@ -79,7 +79,7 @@ tab 下划线、当前行），不做小字。
 | --- | --- |
 | 时长 | UI 反馈 160ms；指针移动 240ms |
 | 缓动 | `cubic-bezier(0.22, 0.9, 0.3, 1)` |
-| 库 | motion（14.9.1，UMD 本地内置 `../assets/motion.min.js`）；缺失时回退 Web Animations API |
+| 库 | motion（14.9.1，UMD 本地内置 `../../assets/motion.min.js`）；缺失时回退 Web Animations API |
 | 降级 | `prefers-reduced-motion: reduce` 时全部改为 0ms 直切，**信息不丢** |
 
 本题**不使用搬运动效**（`move`）：接雨水没有「把一个值搬到另一格」的动作，硬加飞行块

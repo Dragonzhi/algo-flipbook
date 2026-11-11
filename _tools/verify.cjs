@@ -1,7 +1,7 @@
 /**
  * 力扣演示页验证器（一次跑完所有断点 + 交互回归）
  *
- *   node _tools/verify.cjs "88 合并两个有序数组 - 双指针"
+ *   node _tools/verify.cjs "双指针/88 合并两个有序数组 - 双指针"
  *
  * 产出：
  *   _tools/out/<题号>/<宽度>-base.png     初始态

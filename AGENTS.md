@@ -25,16 +25,26 @@
 │  ├─ SKILL.md                   ← 触发语 / 三层结构 / 数据契约 / 帧质量六原则 / 校验
 │  └─ references/step-model.md   ← 帧模型规范：字段表 + 四种布局 + 叙事写法 + 完整示例
 ├─ _template/                    ← 新题起点（index.html / problem.js / DESIGN.md / README.md）
-└─ <题号> <题目名> - <核心思路>/
-   ├─ README.md                  ← 题面、思路、手动推演表、代码、易错点
-   ├─ DESIGN.md                  ← 设计契约：色板+实测对比度、字号、动效、断点、反模式
-   ├─ problem.js                 ← 【本题唯一要写的代码】数据 + 每步状态
-   └─ index.html                 ← 10 行壳子，永远不用改
+├─ 双指针/                       ← 专题分组：同思路的题收在一起（可按需新增其他专题）
+│  ├─ 42 接雨水 - 双指针/
+│  │  ├─ README.md              ← 题面、思路、手动推演表、代码、易错点
+│  │  ├─ DESIGN.md              ← 设计契约：色板+实测对比度、字号、动效、断点、反模式
+│  │  ├─ problem.js             ← 【本题唯一要写的代码】数据 + 每步状态
+│  │  └─ index.html             ← 10 行壳子，永远不用改
+│  └─ 88 合并两个有序数组 - 双指针/
+│     └─ （同上四个文件）
+└─ <题号> <题目名> - <核心思路>/   ← 也可以直接放根目录，不强制分组
+   ├─ README.md
+   ├─ DESIGN.md
+   ├─ problem.js
+   └─ index.html
 ```
+
+**相对路径**：题目在根目录时共享资源写 `../assets/`；收进专题后写 `../../assets/`（`skill/` 同理）。`_tools/` 的脚本接受带子目录的路径，如 `node _tools/verify.cjs "双指针/42 接雨水 - 双指针"`。
 
 ## 3. 新题流程（照这个顺序，别跳）
 
-1. **抄模板**：`cp -r _template "<NN 题目名 - 思路>"`。
+1. **抄模板**：`cp -r _template "双指针/<NN 题目名 - 思路>"`（放根目录就去掉专题前缀），再把 `index.html` 里的共享资源路径按层级改成 `../assets/` 或 `../../assets/`。
 2. **写 README.md**：题面（照抄力扣原文，链接必填）→ 思路（讲「为什么」不是「代码在做什么」）→ 手动推演表 → 代码 → 边界与易错点。
 3. **只改 `problem.js`**：改 `meta` → `rows` / `markers` → `code` → `examples` + `build()`。`index.html` 不用动。
 4. **写 DESIGN.md**：色板沿用模板，只改 1–3 个语义色；把改过的色对补进 `json contrast` 块。
@@ -79,7 +89,7 @@
 硬规矩：
 
 - 页面里**不许出现裸十六进制色值**，全部走 `DESIGN.md` 登记的 CSS 变量。
-- 动效库用 `../assets/motion.min.js`，**不引 CDN**；取不到时回退 WAAPI（模板已写好）。
+- 动效库用相对路径指向 `assets/motion.min.js`（根目录题 `../assets/`，专题内 `../../assets/`），**不引 CDN**；取不到时回退 WAAPI（模板已写好）。
 - 颜色只承载语义：绿=主操作（播放按钮）与数据 A、蓝=数据 B、橙=品牌与学习进度（进度条 / 中等难度）。
   「正在执行」不用彩色（灰底 + 墨线），黄色不当状态色——容易被读成警告。语义色取 `-80` 深档，
   品牌橙只做填充不做小字，理由见 DESIGN.md §2。
@@ -88,9 +98,9 @@
 ## 5. 验证（不要再用一次性截图脚本）
 
 ```bash
-node _tools/lint-model.cjs "88 合并两个有序数组 - 双指针"
-node _tools/verify.cjs "88 合并两个有序数组 - 双指针"
-node _tools/contrast.mjs "88 合并两个有序数组 - 双指针"
+node _tools/lint-model.cjs "双指针/42 接雨水 - 双指针"
+node _tools/verify.cjs "双指针/42 接雨水 - 双指针"
+node _tools/contrast.mjs "双指针/42 接雨水 - 双指针"
 ```
 
 `lint-model.cjs` 在沙箱里跑一遍每个 example，逐帧断言：帧数区间（主示例 5–40，硬上限 60）、`code` 行号落在源码范围内、`rows` / `p` / `move` 索引不越界、`markers` 已声明、`tone` 已在 `meta.tones` 登记、首末帧有解说。**数据错在这里就报，不用等浏览器。**

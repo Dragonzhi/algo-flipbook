@@ -1,7 +1,7 @@
 /**
  * 对比度自检：把 DESIGN.md 里登记的色对逐个算 WCAG 比值，低于 4.5 直接报错。
  *
- *   node _tools/contrast.mjs "88 合并两个有序数组 - 双指针"
+ *   node _tools/contrast.mjs "双指针/88 合并两个有序数组 - 双指针"
  *
  * 用法：在题目文件夹的 DESIGN.md 里维护一个 ```json 块（见下），工具只认它。
  *

@@ -140,6 +140,6 @@ public:
 | 重置 | 回到初始指针状态 |
 | 键盘 | `←` 上一步 · `→` 下一步 · `空格` 播放/暂停 · `R` 重置 |
 
-动效用 [motion](https://motion.dev)（14.9.1，库文件内置在 `../assets/motion.min.js`，离线可用）；取不到时自动退回浏览器原生 Web Animations API。系统开启「减少动效」时全部改为直切，但数值、指针、分支、解说照常更新。
+动效用 [motion](https://motion.dev)（14.9.1，库文件内置在 `../../assets/motion.min.js`，离线可用）；取不到时自动退回浏览器原生 Web Animations API。系统开启「减少动效」时全部改为直切，但数值、指针、分支、解说照常更新。
 
 设计契约（色板与实测对比度、字号、动效参数、断点）见 [`DESIGN.md`](DESIGN.md)。

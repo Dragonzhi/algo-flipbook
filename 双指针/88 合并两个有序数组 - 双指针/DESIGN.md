@@ -75,7 +75,7 @@ tab 下划线、当前行），不做小字。
 | --- | --- |
 | 时长 | UI 反馈 160ms；指针移动 240ms；数值搬运 320ms |
 | 缓动 | `cubic-bezier(0.22, 0.9, 0.3, 1)` |
-| 库 | motion（motion.dev 14.9.1，UMD 本地内置 `../assets/motion.min.js`，离线可用）；文件缺失时自动回退到 Web Animations API |
+| 库 | motion（motion.dev 14.9.1，UMD 本地内置 `../../assets/motion.min.js`，离线可用）；文件缺失时自动回退到 Web Animations API |
 | 降级 | `prefers-reduced-motion: reduce` 时全部改为 0ms 直切，**信息不丢**：数值、指针位置、当前分支、步骤文字照常更新 |
 
 动效必须承载信息：飞行的小块说明「这个值从哪搬到哪」；指针滑动说明「指针真的在动」。没有纯装饰的循环动画。
