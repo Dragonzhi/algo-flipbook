@@ -25,14 +25,12 @@
 │  ├─ SKILL.md                   ← 触发语 / 三层结构 / 数据契约 / 帧质量六原则 / 校验
 │  └─ references/step-model.md   ← 帧模型规范：字段表 + 四种布局 + 叙事写法 + 完整示例
 ├─ _template/                    ← 新题起点（index.html / problem.js / DESIGN.md / README.md）
-├─ 双指针/                       ← 专题分组：同思路的题收在一起（可按需新增其他专题）
-│  ├─ 42 接雨水 - 双指针/
-│  │  ├─ README.md              ← 题面、思路、手动推演表、代码、易错点
-│  │  ├─ DESIGN.md              ← 设计契约：色板+实测对比度、字号、动效、断点、反模式
-│  │  ├─ problem.js             ← 【本题唯一要写的代码】数据 + 每步状态
-│  │  └─ index.html             ← 10 行壳子，永远不用改
-│  └─ 88 合并两个有序数组 - 双指针/
-│     └─ （同上四个文件）
+├─ 双指针/ · 前缀和/ · 树/        ← 专题分组：同思路的题收在一起（可按需新增其他专题）
+│  └─ <题号> <题目名 - 核心思路>/
+│     ├─ README.md              ← 题面、思路、手动推演表、代码、易错点
+│     ├─ DESIGN.md              ← 设计契约：色板+实测对比度、字号、动效、断点、反模式
+│     ├─ problem.js             ← 【本题唯一要写的代码】数据 + 每步状态
+│     └─ index.html             ← 10 行壳子，永远不用改
 └─ <题号> <题目名> - <核心思路>/   ← 也可以直接放根目录，不强制分组
    ├─ README.md
    ├─ DESIGN.md
@@ -62,7 +60,7 @@
 | --- | --- |
 | `meta` | eyebrow、title、difficulty（`简单` / `中等` / `困难` → 题面难度徽标）、ledeHtml / ledeShort、facts（渲染成 chip）、tones（语义色）、legend（最多 3 项）、code（代码卡标题/说明/底部信息） |
 | `markers` | 指针徽标：`{ p1: { tone: "a" }, tail: { tone: "muted" } }` |
-| `layout` | 默认 `sequence`（已实现）；`bars` = `rows[0]` 柱高 + `rows[1]` 积水，渲染成 2D SVG 柱状图（已实现，接雨水用）；`network` / `matrix` 的数据契约见 `skill/references/step-model.md`，渲染待接入 |
+| `layout` | 默认 `sequence`（已实现）；`bars` = `rows[0]` 柱高 + `rows[1]` 积水，渲染成 2D SVG 柱状图（已实现，接雨水用）；`network` = `nodes` + `edges`，渲染成 SVG 节点图（已实现，树的题用）；`matrix` 的数据契约见 `skill/references/step-model.md`，渲染待接入 |
 | `rows` | 有几行格子：`[{ label, tone, emptyNote? }]` |
 | `code` | 展示的源码，**行号从 1 开始**，与每步的 `code: [...]` 对齐 |
 | `examples` | `[{ label, input }]` |
@@ -84,7 +82,7 @@
 
 格子的三种状态：`tone`（来源色）、`placeholder`（虚线空位）、`consumed`（灰掉）。
 
-模板已实现、**不要重写**：示例切换（力扣式下划线 tab）、上一步/下一步/播放/暂停/重置/倍速、键盘（← → 空格 R，底部用 `<kbd>` 分组提示）、指针徽标移动、数值搬运动效、代码行同步高亮（中性灰底 + 2px 墨线，行号加粗）、进度条（可点击跳步）、读数变化高亮、`prefers-reduced-motion` 降级、手机端底部固定步进条、无障碍 live region。
+模板已实现、**不要重写**：示例切换（力扣式下划线 tab）、上一步/下一步/播放/暂停/重置/倍速、键盘（← → 空格 R，底部用 `<kbd>` 分组提示）、指针徽标移动、数值搬运动效、代码行同步高亮（中性灰底 + 2px 墨线，行号加粗）、进度条（可点击跳步）、解说卡（分支 + 正文 + 行号，17px 墨线卡）、读数变化（整格 2px 墨框 + 变化量小墨牌）、`prefers-reduced-motion` 降级、手机端底部固定步进条、无障碍 live region。
 
 硬规矩：
 
