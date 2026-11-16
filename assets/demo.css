@@ -372,6 +372,47 @@
   .chart-svg .w-val { fill: var(--tone-b); font-weight: 600; font-size: 10px; }
   .chart-svg .idx { fill: #8C8C8C; font-size: 10px; }
 
+  /* ---------- network 布局：nodes / edges 画成 SVG 节点图（树、图、Trie） ---------- */
+  .net { position: relative; display: block; }
+  .cellwrap.has-net { padding: 10px 0 6px; }
+  .net-svg { display: block; max-width: 100%; overflow: visible; }
+  .net-svg text { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  .net-edge { stroke: var(--line-strong); stroke-width: 1.5; stroke-linecap: round; }
+  .net-edge.is-ghost { stroke: var(--line); stroke-dasharray: 3 4; }
+  .net-edge.is-active { stroke: var(--fg); stroke-width: 2.5; }
+  .net-edge.is-settled { stroke: var(--tone-a); stroke-width: 2; }
+  .net-edge.is-rejected { stroke: var(--fg); stroke-width: 2; stroke-dasharray: 5 4; }
+
+  .net-node circle { fill: #FFFFFF; stroke: var(--line-strong); stroke-width: 1.5; }
+  .net-node .net-label { fill: var(--fg); font-weight: 600; }
+  .net-node .net-sub { fill: var(--fg-muted); font-size: 11px; }
+
+  /* 空节点（树里不存在的孩子）：虚线圈不填色，让人一眼看出"这里没有节点" */
+  .net-node.is-ghost circle { fill: transparent; stroke: var(--line-strong); stroke-dasharray: 3 3; }
+  .net-node.is-ghost .net-label { fill: var(--fg-muted); font-weight: 500; }
+
+  /* 正在比较：墨线加粗。「正在执行」在本工作区一律中性灰 + 墨线，不用彩色 */
+  .net-node.is-active circle { stroke: var(--fg); stroke-width: 2.5; }
+  .net-node.is-active .net-label { fill: var(--fg); }
+
+  /* 判定相等：绿 */
+  .net-node.is-settled circle {
+    stroke: var(--tone-a);
+    stroke-width: 2;
+    fill: color-mix(in srgb, var(--tone-a) 10%, #fff);
+  }
+  .net-node.is-settled .net-label { fill: var(--tone-a); }
+
+  /* 判定失败：虚线圈 + 灰字，用形状表达"不成立"，不靠第三种颜色 */
+  .net-node.is-rejected circle {
+    stroke: var(--fg);
+    stroke-width: 2;
+    stroke-dasharray: 4 3;
+    fill: var(--well-2);
+  }
+  .net-node.is-rejected .net-label { fill: var(--fg-muted); }
+
   /* 指针标记：白底药丸，压在白格上也分得开 */
   .marker {
     position: absolute;
@@ -419,29 +460,61 @@
     color: var(--fg-muted);
   }
 
-  /* 解说：正文 + 右侧行号引用，行号整体不拆行 */
+  /* 解说卡：全页最该被读到的一段话。
+     白底 + 左侧 3px 墨线把它从「灰底小字」提到正文之上；分支名和行号引用收进卡内头行，
+     外面不再多挂一行「这一步：xxx」，少一条悬空的分隔。 */
   .narration {
-    position: relative;
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 12px;
-    margin: 14px 0 0;
-    min-height: 48px;
-    padding: 11px 92px 11px 13px;
-    background: var(--well);
+    flex-direction: column;
+    gap: 6px;
+    margin: 16px 0 0;
+    min-height: 80px;
+    padding: 11px 14px 13px 16px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--fg);
     border-radius: 8px;
-    font-size: 13.5px;
+  }
+
+  .narr-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px 10px;
+    margin: 0;
+  }
+
+  .narr-kicker {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--fg-muted);
+  }
+
+  .narr-kicker b { color: var(--fg); font-weight: 700; }
+
+  /* 分支名前的分隔点：分支为空时不出现 */
+  .narr-kicker b:not(:empty)::before {
+    content: "·";
+    margin: 0 6px;
+    color: var(--line-strong);
+    font-weight: 400;
+  }
+
+  .narr-text {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 500;
     line-height: 1.6;
     color: var(--fg);
     text-wrap: pretty;
   }
 
   .narr-ref {
-    position: absolute;
-    top: 11px;
-    right: 13px;
     flex: 0 0 auto;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--well);
     font-family: var(--mono);
     font-size: 11.5px;
     color: var(--fg-muted);
@@ -552,28 +625,20 @@
     min-width: 0;
   }
 
-  /* 读数格：值一变就闪一下橙色描边，跟着变量走不丢 */
+  /* 读数格：值一变就整格亮起来——白底 + 2px 墨框（和「本步写入」同一套语言），
+     数值后面再标出变了多少，眼睛不用拿数字去比上一步 */
   .var {
     position: relative;
-    padding: 8px 10px;
-    border: 1px solid transparent;
+    padding: 9px 11px 8px;
     border-radius: 8px;
     background: var(--well);
-    transition: background-color 220ms var(--ease), border-color 220ms var(--ease);
+    box-shadow: inset 0 0 0 1px transparent;
+    transition: background-color 180ms var(--ease), box-shadow 180ms var(--ease);
   }
 
-  /* 读数格：变了的变量在右上角点一个墨点，不抢颜色语义 */
-  .var.is-changed { background: #fff; border-color: var(--line); }
-
-  .var.is-changed::after {
-    content: "";
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--fg);
+  .var.is-changed {
+    background: #fff;
+    box-shadow: inset 0 0 0 2px var(--fg);
   }
 
   .var-k {
@@ -587,7 +652,7 @@
     display: block;
     margin-top: 2px;
     font-family: var(--mono);
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     color: var(--fg);
@@ -595,14 +660,20 @@
 
   .var-v.is-negative { color: var(--fg-muted); }
 
-  .branch {
-    margin: 14px 0 0;
-    font-size: 13.5px;
-    line-height: 1.5;
-    color: var(--fg-muted);
+  /* 变化量：贴着数值右上角的小墨牌，+3 / −1 直接读出来 */
+  .var-delta {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--fg);
+    color: var(--panel);
+    font-size: 10.5px;
+    font-weight: 600;
+    line-height: 1.55;
+    vertical-align: 5px;
+    letter-spacing: 0;
   }
-
-  .branch b { color: var(--fg); font-weight: 600; }
 
   .codepanel {
     display: flex;
@@ -817,6 +888,10 @@
   /* bars 布局：图表吃满舞台左列，读数仍在右侧（窄屏回到单栏，见 ≤820） */
   @media (min-width: 821px) {
     .layout-bars .arrays { grid-template-columns: minmax(0, 1fr) minmax(140px, 176px); }
+    /* network 布局：节点图吃满整行，读数落到图下方——树越宽越好读 */
+    .layout-network .arrays { grid-template-columns: minmax(0, 1fr); row-gap: 14px; }
+    .layout-network .readouts { padding-top: 0; }
+    .layout-network .readouts-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: 460px; }
   }
 
   @media (min-width: 1700px) {
@@ -884,12 +959,12 @@
     .lede-short { display: block; }
     .readouts { padding-top: 0; }
     .readouts-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
-    .var { padding: 8px 9px; }
-    .var-v { font-size: 17px; }
-    .branch { font-size: 11.5px; }
+    .var { padding: 8px 9px 7px; }
+    .var-v { font-size: 18px; }
+    .var-delta { margin-left: 4px; padding: 0 4px; font-size: 9.5px; vertical-align: 4px; }
 
-    .narration { flex-direction: column; align-items: flex-start; gap: 4px; min-height: 0; padding: 10px 12px; font-size: 13px; }
-    .narr-ref { position: static; }
+    .narration { min-height: 0; padding: 9px 12px 11px 13px; gap: 5px; border-left-width: 4px; }
+    .narr-text { font-size: 15px; }
 
     /* 手机上把控制条固定到视口底部：主操作永远在首屏，滚到代码栏也能继续步进；
        body 预留同等高度，内容不会被压住 */

@@ -63,6 +63,7 @@
   var rowsSpec = SPEC.rows || [];
   var LAYOUT = SPEC.layout || "sequence";
   var IS_BARS = LAYOUT === "bars";
+  var IS_NET = LAYOUT === "network";
   var SVG_NS = "http://www.w3.org/2000/svg";
 
   function applyTones() {
@@ -181,19 +182,26 @@
     arrays.appendChild(readouts);
     stage.appendChild(arrays);
 
-    // 分支 + 解说
-    var branch = el("p", "branch");
-    branch.innerHTML = "这一步：<b id=\"branchValue\"></b>";
-    stage.appendChild(branch);
-
-    var narr = el("p", "narration");
+    // 解说卡：这一步叫什么 + 正文 + 行号引用。
+    // 全页最该被读到的一段话，所以单独成卡（墨色左侧竖线），不再是一行灰字。
+    var narr = el("div", "narration");
     narr.setAttribute("aria-live", "polite");
-    var text = el("span", "narr-text");
-    text.id = "narrText";
+
+    var head = el("p", "narr-head");
+    var kicker = el("span", "narr-kicker", "这一步");
+    var branchValue = el("b", null, "");
+    branchValue.id = "branchValue";
+    kicker.appendChild(branchValue);
     var ref = el("span", "narr-ref");
     ref.id = "narrRef";
+    head.appendChild(kicker);
+    head.appendChild(ref);
+
+    var text = el("p", "narr-text");
+    text.id = "narrText";
+
+    narr.appendChild(head);
     narr.appendChild(text);
-    narr.appendChild(ref);
     stage.appendChild(narr);
 
     var sr = el("p", "sr-only");
@@ -349,6 +357,10 @@
     k: 0,
     steps: [],
     rowCells: [],   // [ [cell...], [cell...] ]
+    chart: null,    // bars 布局的柱子表
+    net: null,      // network 布局的节点 / 边表
+    netNodes: [],
+    netEdges: [],
     markers: [],    // { name, row, el }
     playing: false,
     busy: false,
@@ -519,6 +531,157 @@
     ch.box.setAttribute("aria-label", "柱状图，各列高度：" + summary.join("、"));
   }
 
+  /* ---- network 布局：nodes / edges 画成 SVG 节点图（树、图、Trie） ----
+     坐标用百分比（x/y 都是 0–100），这里换算成像素；viewBox 直接等于像素宽高，
+     所以半径和字号不随容器缩放变化，手机上也能读。 */
+  function buildNet(host, nodes, edges) {
+    var old = host.querySelector(".net");
+    if (old) old.remove();
+
+    nodes = nodes || [];
+    edges = edges || [];
+    var blockEl = host.closest ? host.closest(".array-block") : null;
+    var avail = (blockEl && blockEl.clientWidth) || 460;
+
+    var W = Math.max(250, Math.round(avail));
+    var R = W < 340 ? 16 : W < 460 ? 19 : 22;
+    var pad = R + 12;
+
+    // 纵向只给树本身留高度：按节点实际用到的 y 范围重映射，避免图下方一大片空白
+    var yMin = 100;
+    var yMax = 0;
+    nodes.forEach(function (nd) {
+      var y = Number(nd.y);
+      if (!isFinite(y)) return;
+      if (y < yMin) yMin = y;
+      if (y > yMax) yMax = y;
+    });
+    if (!nodes.length) { yMin = 0; yMax = 100; }
+    var spanY = yMax - yMin;
+    var treeH = Math.round(Math.min(300, Math.max(120, W * 0.42)));
+    var H = Math.round(2 * pad + (spanY > 0 ? treeH : R * 2));
+
+    var box = el("div", "net");
+    box.setAttribute("role", "img");
+
+    var svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("class", "net-svg");
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.setAttribute("width", String(W));
+    svg.setAttribute("height", String(H));
+    svg.setAttribute("aria-hidden", "true");
+
+    var pos = {};
+    nodes.forEach(function (nd) {
+      var yn = spanY > 0 ? (Number(nd.y) - yMin) / spanY : 0.5;
+      pos[nd.id] = {
+        cx: pad + ((Number(nd.x) || 0) / 100) * (W - pad * 2),
+        cy: pad + yn * (H - pad * 2)
+      };
+    });
+
+    // 边先画，压在所有节点下面
+    var edgeList = [];
+    edges.forEach(function (e) {
+      var a = pos[e.from];
+      var b = pos[e.to];
+      if (!a || !b) return;
+      var ln = document.createElementNS(SVG_NS, "line");
+      ln.setAttribute("class", "net-edge" + (e.ghost ? " is-ghost" : ""));
+      ln.setAttribute("x1", String(a.cx));
+      ln.setAttribute("y1", String(a.cy));
+      ln.setAttribute("x2", String(b.cx));
+      ln.setAttribute("y2", String(b.cy));
+      svg.appendChild(ln);
+      edgeList.push({ el: ln, from: e.from, to: e.to, ghost: !!e.ghost });
+    });
+
+    var byId = {};
+    var ghostIds = {};
+    nodes.forEach(function (nd) {
+      var p = pos[nd.id];
+      if (!p) return;
+      if (nd.ghost) ghostIds[nd.id] = true;
+
+      var g = document.createElementNS(SVG_NS, "g");
+      g.setAttribute("class", "net-node" + (nd.ghost ? " is-ghost" : ""));
+
+      var c = document.createElementNS(SVG_NS, "circle");
+      c.setAttribute("cx", String(p.cx));
+      c.setAttribute("cy", String(p.cy));
+      c.setAttribute("r", String(R));
+      g.appendChild(c);
+
+      var t = document.createElementNS(SVG_NS, "text");
+      t.setAttribute("class", "net-label");
+      t.setAttribute("x", String(p.cx));
+      t.setAttribute("y", String(p.cy));
+      t.setAttribute("text-anchor", "middle");
+      t.setAttribute("dominant-baseline", "central");
+      t.setAttribute("font-size", String(Math.round(R * 0.86)));
+      t.textContent = String(nd.label == null ? "" : nd.label);
+      g.appendChild(t);
+
+      if (nd.sub) {
+        var s = document.createElementNS(SVG_NS, "text");
+        s.setAttribute("class", "net-sub");
+        s.setAttribute("x", String(p.cx));
+        s.setAttribute("y", String(p.cy + R + 13));
+        s.setAttribute("text-anchor", "middle");
+        s.textContent = String(nd.sub);
+        g.appendChild(s);
+      }
+
+      svg.appendChild(g);
+      byId[nd.id] = { g: g, circle: c, text: t, cx: p.cx, cy: p.cy, r: R };
+    });
+
+    box.appendChild(svg);
+    host.appendChild(box);
+    return { box: box, svg: svg, byId: byId, edges: edgeList, ghostIds: ghostIds, W: W, H: H };
+  }
+
+  function renderNet(step) {
+    var net = state.net;
+    if (!net) return;
+
+    var active = step.active || [];
+    var settled = step.settled || [];
+    var rejected = step.rejected || [];
+    var values = step.values || {};
+    var labels = [];
+
+    Object.keys(net.byId).forEach(function (id) {
+      var n = net.byId[id];
+      var cls = "net-node";
+      if (net.ghostIds[id]) cls += " is-ghost";
+      if (rejected.indexOf(id) !== -1) cls += " is-rejected";
+      else if (active.indexOf(id) !== -1) cls += " is-active";
+      else if (settled.indexOf(id) !== -1) cls += " is-settled";
+      n.g.setAttribute("class", cls);
+
+      if (Object.prototype.hasOwnProperty.call(values, id)) {
+        n.text.textContent = String(values[id]);
+      }
+      labels.push(n.text.textContent);
+    });
+
+    function hitEdge(arr, a, b) {
+      if (!arr) return false;
+      return arr.indexOf(a + "-" + b) !== -1 || arr.indexOf(b + "-" + a) !== -1;
+    }
+
+    net.edges.forEach(function (e) {
+      var cls = "net-edge" + (e.ghost ? " is-ghost" : "");
+      if (hitEdge(step.rejectedEdges, e.from, e.to)) cls += " is-rejected";
+      else if (hitEdge(step.activeEdges, e.from, e.to)) cls += " is-active";
+      else if (hitEdge(step.settledEdges, e.from, e.to)) cls += " is-settled";
+      e.el.setAttribute("class", cls);
+    });
+
+    net.box.setAttribute("aria-label", "节点图，节点值：" + labels.join("、"));
+  }
+
   function mountExample(i) {
     stopPlay();
     state.exIndex = i;
@@ -581,6 +744,26 @@
       state.chart = null;
     }
 
+    // network 布局：格子收起来，舞台上换成 SVG 节点图（行标签与 tag 保留）
+    if (IS_NET) {
+      var netHost = $("rowN1").parentNode;
+      $("rowN1").style.display = "none";
+      for (var nx = 1; nx < rowsSpec.length; nx++) {
+        var nxRow = $("rowN" + (nx + 1));
+        var nxHolder = nxRow && nxRow.closest ? nxRow.closest(".array-block") : null;
+        if (nxHolder) nxHolder.hidden = true;
+      }
+      netHost.classList.add("has-net");
+      // 树的形状可能随示例变化：示例对象可以自带 nodes / edges，没有就用顶层那份
+      state.netNodes = (ex && ex.nodes) || SPEC.nodes || [];
+      state.netEdges = (ex && ex.edges) || SPEC.edges || [];
+      state.net = buildNet(netHost, state.netNodes, state.netEdges);
+    } else {
+      state.net = null;
+      state.netNodes = [];
+      state.netEdges = [];
+    }
+
     // 指针徽标
     markerNodes().forEach(function (def) {
       var wrap = $("rowN" + (def.row + 1)).parentNode;
@@ -636,6 +819,10 @@
       var t1 = (step.rows && step.rows[1] && step.rows[1].tag) || "";
       var chartTag = $("tag0");
       if (chartTag) chartTag.textContent = t0 + (t1 ? " · " + t1 : "");
+    } else if (IS_NET) {
+      renderNet(step);
+      var netTag = $("tag0");
+      if (netTag) netTag.textContent = (step.rows && step.rows[0] && step.rows[0].tag) || "";
     } else {
       (step.rows || []).forEach(function (r, ri) {
         var cells = state.rowCells[ri];
@@ -670,18 +857,34 @@
       placeMarker(m, state.rowCells[m.row], idx);
     });
 
-    // 读数：比上一步变了的变量闪橙色描边，眼睛不用每次重读四个数字
+    // 读数：变了的整格亮起来（墨色双框），并在数值后面标出「变了多少」
     var grid = $("varGrid");
     grid.textContent = "";
     var prevVars = {};
     var prevStep = state.steps[k - 1];
-    ((prevStep && prevStep.vars) || []).forEach(function (v) { prevVars[v.k] = String(v.v); });
+    ((prevStep && prevStep.vars) || []).forEach(function (v) { prevVars[v.k] = v.v; });
     (step.vars || []).forEach(function (v) {
       var box = el("div", "var");
-      if (prevVars[v.k] !== undefined && prevVars[v.k] !== String(v.v)) box.classList.add("is-changed");
+      var hadPrev = Object.prototype.hasOwnProperty.call(prevVars, v.k);
+      // 占位读数（值为「—」）不标注：它不是「变了」，是「这一步不用它」
+      var changed = !!prevStep && !v.dim &&
+        (!hadPrev || String(prevVars[v.k]) !== String(v.v));
+      if (changed) box.classList.add("is-changed");
+
       box.appendChild(el("span", "var-k", v.k));
       var val = el("span", "var-v", String(v.v));
       if (v.dim) val.classList.add("is-negative");
+
+      if (changed) {
+        var from = hadPrev ? Number(prevVars[v.k]) : 0;
+        var to = Number(v.v);
+        var numeric = isFinite(from) && isFinite(to);
+        if (numeric && to !== from) {
+          var sign = to > from ? "+" : "−";
+          val.appendChild(el("span", "var-delta", sign + Math.abs(to - from)));
+        }
+      }
+
       box.appendChild(val);
       grid.appendChild(box);
     });
@@ -859,6 +1062,9 @@
           var host = $("rowN1").parentNode;
           state.chart = buildChart(host, state.chart.n, state.chart.maxV);
           state.rowCells[0] = state.chart.anchors;
+        }
+        if (IS_NET) {
+          state.net = buildNet($("rowN1").parentNode, state.netNodes, state.netEdges);
         }
         render(state.k);
       }, 160);
