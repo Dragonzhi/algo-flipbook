@@ -51,7 +51,7 @@ Dijkstra / 背包；给题解配一个能点着看的推演。
 | 字段 | 说明 |
 | --- | --- |
 | `meta` | eyebrow / title / ledeHtml / ledeShort / facts / tones / legend（≤3 项）/ code |
-| `layout` | 可选，`sequence`（默认，已实现）· `bars`（已实现：`rows[0]` 柱高 + `rows[1]` 积水，SVG 柱状图）· `network` · `matrix`（见 references/step-model.md） |
+| `layout` | 可选，`sequence`（默认）· `bars`（`rows[0]` 柱高 + `rows[1]` 积水 → SVG 柱状图）· `network`（`nodes` + `edges` → SVG 节点图，树 / 图 / Trie）。三者均已实现；`matrix` 见 references/step-model.md |
 | `markers` | 指针徽标定义：`{ p1: { tone: "a" }, tail: { tone: "muted" } }` |
 | `rows` | 有几行格子：`[{ label, tone, emptyNote? }]` |
 | `code` | 展示源码，**行号从 1 起**，与每步 `code: [...]` 对齐 |

@@ -14,11 +14,11 @@
 | layout | 骨架字段 | 典型场景 | 引擎状态 |
 | --- | --- | --- | --- |
 | `sequence`（默认） | `rows` 一行或多行格子 | 数组、字符串、双指针、滑动窗口、栈队列 | **已实现** |
-| `network` | `nodes` + `edges` | 图、树、拓扑、Dijkstra、Trie | 数据契约已定，渲染待接入 |
+| `network` | `nodes` + `edges` | 图、树、拓扑、Dijkstra、Trie | **已实现（SVG 节点图）** |
 | `matrix` | `grid: {rows, cols}` | 二维 DP、LCS、背包、Floyd | 数据契约已定，渲染待接入 |
 | `bars` | `rows[0]` 柱高 + `rows[1]` 积水 | 接雨水、直方图、排序柱、单调栈 | **已实现（SVG 柱状图）** |
 
-> 现阶段的诚实说明：`sequence` 与 `bars` 能直接渲染；`network` / `matrix` 先按本文写数据，
+> 现阶段的诚实说明：`sequence` / `bars` / `network` 能直接渲染；`matrix` 先按本文写数据，
 > 引擎接入后无需改 `problem.js`。**不要**为了用新布局去改 `demo.js` 之外的公共文件。
 
 ### sequence（已实现）
@@ -32,20 +32,52 @@ rows: [
 
 每个 step 的 `rows[i]` 对应第 i 行，`cells[j]` 对应第 j 格。
 
-### network（数据契约）
+### network（已实现）
 
 ```js
-nodes: [{ id: "a", label: "A", x: 20, y: 30 }],   // x/y 是相对舞台的百分比 0–100
-edges: [{ from: "a", to: "b", label: "4", directed: true }]
+nodes: [{ id: "a", label: "A", x: 20, y: 30, ghost: false }],   // x/y 是相对舞台的百分比 0–100
+edges: [{ from: "a", to: "b", ghost: false }]
 ```
 
 帧里用 id 而不是下标：
 
 ```js
-{ active: ["a", "b"], settled: ["c"], activeEdges: ["a-b"], rejectedEdges: ["b-c"] }
+{
+  active: ["a", "b"],          // 墨圈：本步正在比较
+  settled: ["c"],              // 绿圈：已判定成立（累积）
+  rejected: ["d"],             // 虚线圈：判定失败
+  activeEdges: ["a-b"],        // 连线加粗
+  settledEdges: ["c-d"],       // 连线上绿
+  rejectedEdges: ["b-c"],      // 连线转虚线
+  values: { "a": "3" }         // 临时改写某个节点的显示文本
+}
 ```
 
-摆放经验：树分三层、环状图围一圈；节点不重叠、边交叉尽量少。**坐标手算，不自动布局。**
+摆放经验：树按层分 y、按该层位置均分 x；环状图围一圈。**坐标手算，不自动布局。**
+
+几个实现细节（写数据时需要知道）：
+
+- **`x` / `y` 会被重映射**：引擎按所有节点实际用到的 `y` 范围铺满容器高度，所以树高 = 你给的
+  相对层级，不会在图下方留一大片空 SVG。`x` 按 0–100 线性映射。
+- **`viewBox` 等于像素宽高**，半径（16/19/22）与字号不随容器缩放，手机上不会缩成芝麻。
+- **`ghost: true`** 画成虚线圈不填充，用来表示「这里的节点不存在」。默认**不要**给每棵子树的
+  空孩子都画 ghost——只有当一个空指针真的参与一次比较时才画，否则画面上全是虚线圈。
+- **`sub`** 可以在节点下方加一行小字（11px，`--fg-muted`）。
+- **树形随示例变化时**，把 `nodes` / `edges` 挂在 `examples[i]` 上，引擎优先用示例级的那份：
+
+  ```js
+  examples: [
+    { label: "示例 1", input: {...}, nodes: [...], edges: [...] },
+    { label: "示例 2", input: {...}, nodes: [...], edges: [...] }
+  ]
+  ```
+
+  一个把层序数组摆成树的辅助函数（`layoutTree`）与完整示例见
+  `树/101 对称二叉树 - 递归镜像/problem.js`。
+- `rows` 仍然要给一行（`[{ label: "tree" }]`）：行标签和 `rows[0].tag` 会显示在图上，
+  `tag` 里适合放「已比较 N 对」这类进度。
+- `lint-model.cjs` 会校验：节点 id 唯一、`x/y` 在 0–100、`edges` 端点存在、帧里的
+  `active/settled/rejected/values` 都是已声明的节点、边名是已声明的边、节点间距 ≥ 9%（防重叠）。
 
 ### matrix（数据契约）
 
@@ -86,10 +118,10 @@ rows: [
 | --- | --- | --- |
 | `rows` | ✅ | 每行的格子状态；`cells[].v` 是显示文本 |
 | `vars` | 建议 | 读数面板：`[{ k, v, dim? }]`，`dim` 表示该值已越界/失效 |
-| `branch` | ✅ | 本步走的分支名，一行短句 |
+| `branch` | ✅ | 本步走的分支名，一行短句；渲染在解说卡头行（`这一步 · xxx`） |
 | `code` | ✅ | 高亮行号数组，**1 起**，必须落在 `code.length` 内 |
-| `text` | ✅ | 一句解说，≤ 约 40 字，引用具体值 |
-| `ref` | 建议 | 右对齐的行号引用，如「第 14 行」 |
+| `text` | ✅ | 一句解说，≤ 约 40 字，引用具体值；正文 17px，是全页最该被读的一段 |
+| `ref` | 建议 | 行号引用，如「第 14 行」；渲染成解说卡头行右侧的 chip（不是正文里的字） |
 | `move` | 可选 | 搬运动效：`{ from: {row,i}, to: {row,i}, value, tone }` |
 | `sr` | 建议 | 屏幕阅读器用的完整状态句 |
 

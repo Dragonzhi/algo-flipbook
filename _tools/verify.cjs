@@ -106,7 +106,8 @@ const rows = [];
       return {
         step: (document.getElementById("stepNow") || {}).textContent,
         cells: [...document.querySelectorAll("#rowN1 .cell .val")].map((v) => v.textContent),
-        chart: (document.querySelector(".chart") || { getAttribute: () => "" }).getAttribute("aria-label")
+        chart: (document.querySelector(".chart") || { getAttribute: () => "" }).getAttribute("aria-label"),
+        net: [...document.querySelectorAll(".net-node .net-label")].map((t) => t.textContent).join("")
       };
     });
     await page.screenshot({ path: path.join(outDir, s.w + "-final.png"), fullPage: true });
@@ -154,8 +155,9 @@ const rows = [];
       "| 代码横滚", r.codeScroll && r.codeScroll.length ? "需要" : "无",
       "| motion", r.hasMotion ? "✓" : "✗",
       "| 遮挡", String((r.occluded && r.occluded.bad.length) || 0),
-      "| 图", r.final.chart ? "✓" : "—",
-      "| 终态", r.final.step, JSON.stringify(r.final.cells.filter(Boolean).length ? r.final.cells : r.final.chart)
+      "| 图", r.final.net ? "节点图" : r.final.chart ? "柱状图" : "—",
+      "| 终态", r.final.step,
+      JSON.stringify(r.final.net || (r.final.cells.filter(Boolean).length ? r.final.cells : r.final.chart))
     );
   }
   if (failures.length) {
