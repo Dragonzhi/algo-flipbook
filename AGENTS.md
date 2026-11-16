@@ -157,3 +157,18 @@ node _tools/contrast.mjs "双指针/42 接雨水 - 双指针"
 - 不引 webfont、图标库、CDN 资源；图标一律内联 SVG。
 - 不做伪指标、发光胶囊、渐变装饰条、三层套娃卡片。
 - 不在演示页里写「待补充」；没做完的功能宁可不放按钮。
+
+## 11. 版本管理
+
+- 本地 `main` 分支，没有远程。提交信息用 Conventional Commits + 中文描述：
+  `feat(engine): …` / `feat(tools): …` / `feat: 新增 <题号> …` / `fix: …` / `chore: …` / `docs: …`。
+- **一次提交只做一件事**。新题 = `problem.js` + `README.md` + `DESIGN.md` + `index.html` + 根索引；
+  引擎改版 = `assets/*` + 受影响的 `DESIGN.md` + `skill/*` + `_tools/*`。
+  不要在一个提交里既加题又改引擎——真撞在一起时（比如新题逼出新布局），
+  按「引擎 → 工具/规范 → 新题」的顺序拆成几个提交。
+- 提交前跑过 §5 的命令：只加题跑 `lint-model` + `verify`；**改了共享引擎则四道题全跑**，
+  确认老题没被改坏。
+- 不提交 `_tools/out/`（截图与 `report.json`，可随时重跑）、`.dsh-ops/`、`.commandcode/`，
+  规则见 `.gitignore`。
+- 行尾由 `.gitattributes` 统一：索引存 LF，Windows 工作区按 `core.autocrlf=true` 检出 CRLF；
+  提交时出现 `LF will be replaced by CRLF` 的提示属正常，不是错误。
